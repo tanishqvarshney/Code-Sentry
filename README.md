@@ -101,3 +101,14 @@ Headers:
 - `X-GitHub-Event: pull_request`
 - `X-Hub-Signature-256: sha256=<hmac-signature>`
 - `Content-Type: application/json`
+
+---
+
+## Screenshots
+
+### Analysis Dashboard
+![Analysis Dashboard](screenshots/dashboard-code-viewer.png)
+
+### Code Findings
+![Code Findings](screenshots/dashboard-findings.png)
+
