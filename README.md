@@ -109,6 +109,15 @@ Headers:
 ### Analysis Dashboard
 ![Analysis Dashboard](screenshots/dashboard-code-viewer.png)
 
+### Main Dashboard View
+![Main Dashboard View](screenshots/dashboard-main.png)
+
+### History View
+![History View](screenshots/history-view.png)
+
+### Stats and Errors
+![Stats and Errors](screenshots/error-stat.png)
+
 ### Code Findings
 ![Code Findings](screenshots/dashboard-findings.png)
 
