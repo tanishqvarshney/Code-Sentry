@@ -94,7 +94,9 @@ public class ReviewController {
     public List<Map<String, Object>> getReviews() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (PrReview review : prReviewRepository.findAll()) {
-            long count = prFindingRepository.findByReviewId(review.getId()).size();
+            List<org.codesentry.app.db.PrFinding> findings = prFindingRepository.findByReviewId(review.getId());
+            long count = findings.size();
+            long errorCount = findings.stream().filter(f -> "ERROR".equals(f.getSeverity())).count();
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id", review.getId());
             entry.put("repoName", review.getRepoName());
@@ -103,6 +105,7 @@ public class ReviewController {
             entry.put("analyzedAt", review.getAnalyzedAt().toString());
             entry.put("status", review.getStatus());
             entry.put("findingCount", count);
+            entry.put("errorCount", errorCount);
             result.add(entry);
         }
         result.sort((a, b) -> Long.compare((Long) b.get("id"), (Long) a.get("id")));

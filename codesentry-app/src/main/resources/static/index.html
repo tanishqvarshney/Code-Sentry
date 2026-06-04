@@ -289,7 +289,8 @@
       document.getElementById('s-findings').textContent = totalFindings;
 
       // Count errors by fetching all findings (approximate from stored count)
-      document.getElementById('s-errors').textContent = '—';
+      const totalErrors = reviews.reduce((s, r) => s + (r.errorCount || 0), 0);
+      document.getElementById('s-errors').textContent = totalErrors;
 
       const container = document.getElementById('history-container');
       if (!reviews.length) {
