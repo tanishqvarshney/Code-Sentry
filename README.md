@@ -104,19 +104,17 @@ Headers:
 
 ---
 
-## Screenshots
+### Analysis Dashboard
+![Analysis Dashboard](screenshots/1.png)
 
-### 1
-![Screenshot 1](screenshots/1.png)
+### History View
+![History View](screenshots/2.png)
 
-### 2
-![Screenshot 2](screenshots/2.png)
+### Submit for Analysis
+![Submit for Analysis](screenshots/3.png)
 
-### 3
-![Screenshot 3](screenshots/3.png)
+### Code Findings
+![Code Findings](screenshots/4.png)
 
-### 4
-![Screenshot 4](screenshots/4.png)
-
-### 5
-![Screenshot 5](screenshots/5.png)
+### Recent Analyses
+![Recent Analyses](screenshots/5.png)
