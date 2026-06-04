@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: codesentry
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:codesentry}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:mock-key}
+  api-url: ${ANTHROPIC_API_URL:https://api.anthropic.com/v1/messages}
+  model: ${ANTHROPIC_MODEL:claude-3-5-sonnet-20241022}
+
+github:
+  app-id: ${GITHUB_APP_ID:123456}
+  private-key-path: ${GITHUB_PRIVATE_KEY_PATH:/app/private-key.pem}
+  webhook-secret: ${GITHUB_WEBHOOK_SECRET:sentry-secret}
+  token: ${GITHUB_TOKEN:}
+
+server:
+  port: ${PORT:8080}

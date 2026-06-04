@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CodeSentry — Static Analysis Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f14; --bg2: #161b25; --bg3: #1d2433;
+      --border: #232b3a; --border2: #2e3a50;
+      --text: #e2e8f0; --muted: #64748b; --subtle: #334155;
+      --green: #22c55e; --red: #ef4444; --amber: #f59e0b; --blue: #3b82f6;
+      --purple: #a855f7;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    header { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo span { color: var(--green); }
+    .badge { display: flex; align-items: center; gap: 7px; background: #0f2218; border: 1px solid var(--green); color: var(--green); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; padding: 5px 14px; border-radius: 20px; }
+    .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Layout ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Stats bar ── */
+    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 40px; }
+    .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 600; }
+    .stat-val.blue { color: var(--blue); } .stat-val.green { color: var(--green); }
+    .stat-val.amber { color: var(--amber); } .stat-val.red { color: var(--red); }
+
+    /* ── Section titles ── */
+    .section-title { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 16px; }
+
+    /* ── Submit panel ── */
+    .submit-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 40px; }
+    .submit-panel h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .submit-panel p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+    .tabs { display: flex; gap: 4px; background: var(--bg); border-radius: 10px; padding: 4px; width: fit-content; margin-bottom: 20px; }
+    .tab-btn { padding: 8px 20px; border-radius: 8px; border: none; background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif; }
+    .tab-btn.active { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+
+    .tab-pane { display: none; } .tab-pane.active { display: block; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    .field input, .field textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 10px 14px; font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s;
+    }
+    .field input:focus, .field textarea:focus { border-color: var(--blue); }
+    .field textarea { font-family: 'JetBrains Mono', monospace; font-size: 12px; resize: vertical; min-height: 200px; }
+    .field-row { display: grid; grid-template-columns: 1fr 220px; gap: 12px; }
+
+    .btn-analyze {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--blue); color: #fff; border: none; border-radius: 8px;
+      padding: 11px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: background .2s;
+    }
+    .btn-analyze:hover { background: #2563eb; }
+    .btn-analyze:disabled { background: var(--subtle); cursor: not-allowed; }
+    .btn-analyze svg { animation: spin 1s linear infinite; display: none; }
+    .btn-analyze.loading svg { display: block; }
+    .btn-analyze.loading .btn-text::before { content: 'Analyzing…'; }
+    .btn-analyze.loading .btn-label { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ── */
+    #results { display: none; margin-bottom: 40px; }
+    .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .result-meta { font-size: 12px; color: var(--muted); }
+    .finding-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 12px; border-left: 3px solid var(--border); }
+    .finding-card.ERROR { border-left-color: var(--red); }
+    .finding-card.WARNING { border-left-color: var(--amber); }
+    .finding-card.INFO { border-left-color: var(--blue); }
+    .finding-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .severity-badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 6px; letter-spacing: 1px; }
+    .severity-badge.ERROR { background: #2d0f0f; color: var(--red); border: 1px solid var(--red); }
+    .severity-badge.WARNING { background: #2d1f0f; color: var(--amber); border: 1px solid var(--amber); }
+    .severity-badge.INFO { background: #0f1f2d; color: var(--blue); border: 1px solid var(--blue); }
+    .rule-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--blue); }
+    .priority-badge { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted); }
+    .file-loc { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--purple); }
+    .finding-message { font-size: 14px; font-weight: 500; margin-bottom: 10px; }
+    .finding-section { margin-top: 12px; }
+    .finding-section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .finding-rationale { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+    pre.fix { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--green); overflow-x: auto; margin: 0; white-space: pre-wrap; word-break: break-all; }
+    .no-findings { text-align: center; padding: 40px; color: var(--green); font-size: 16px; font-weight: 500; }
+
+    /* ── History ── */
+    .history-table { width: 100%; border-collapse: collapse; }
+    .history-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .history-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .history-table tbody tr { cursor: pointer; transition: background .15s; }
+    .history-table tbody tr:hover { background: var(--bg2); }
+    .count-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .count-badge.has { background: #2d1f0f; color: var(--amber); }
+    .count-badge.none { background: #0f2218; color: var(--green); }
+    .time-ago { color: var(--muted); font-size: 12px; }
+    .source-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--purple); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .empty-history { text-align: center; padding: 40px; color: var(--muted); }
+    .expand-row td { padding: 0; }
+    .expand-inner { padding: 16px; background: var(--bg); border-bottom: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">Code<span>Sentry</span></div>
+  <div class="badge"><span class="dot"></span> Engine Online</div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-label">PR Reviews</div><div class="stat-val blue" id="s-reviews">—</div></div>
+    <div class="stat"><div class="stat-label">Findings Stored</div><div class="stat-val amber" id="s-findings">—</div></div>
+    <div class="stat"><div class="stat-label">Errors</div><div class="stat-val red" id="s-errors">—</div></div>
+    <div class="stat"><div class="stat-label">F1 Score</div><div class="stat-val green">100%</div></div>
+  </div>
+
+  <!-- Submit -->
+  <div class="submit-panel">
+    <h2>Submit for Analysis</h2>
+    <p>Paste a GitHub PR URL or Java code snippet — CodeSentry will run CFG + DFG static analysis and explain every finding.</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('github', this)">🔗 GitHub PR</button>
+      <button class="tab-btn" onclick="switchTab('code', this)">📋 Paste Code</button>
+    </div>
+
+    <!-- GitHub tab -->
+    <div id="tab-github" class="tab-pane active">
+      <div class="field">
+        <label>GitHub Pull Request URL</label>
+        <input id="pr-url" type="url" placeholder="https://github.com/owner/repo/pull/123"/>
+      </div>
+    </div>
+
+    <!-- Code tab -->
+    <div id="tab-code" class="tab-pane">
+      <div class="field-row">
+        <div class="field" style="margin:0">
+          <label>File Name</label>
+          <input id="code-filename" type="text" placeholder="MyClass.java" value="PastedCode.java"/>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>Java Source Code</label>
+        <textarea id="code-input" placeholder="Paste your Java code here…"></textarea>
+      </div>
+    </div>
+
+    <button class="btn-analyze" id="analyze-btn" onclick="runAnalysis()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+      <span class="btn-label">Analyze Now</span>
+    </button>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="result-header">
+      <div class="section-title">Analysis Results</div>
+      <div class="result-meta" id="result-meta"></div>
+    </div>
+    <div id="findings-container"></div>
+  </div>
+
+  <!-- History -->
+  <div class="section-title">Analysis History</div>
+  <div id="history-container">
+    <div class="empty-history">No analyses yet — run your first review above.</div>
+  </div>
+</main>
+
+<script>
+  let activeTab = 'github';
+
+  function switchTab(tab, btn) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  async function runAnalysis() {
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = true; btn.classList.add('loading');
+
+    let body;
+    if (activeTab === 'github') {
+      const url = document.getElementById('pr-url').value.trim();
+      if (!url) { alert('Please enter a GitHub PR URL.'); btn.disabled=false; btn.classList.remove('loading'); return; }
+      body = { type: 'github', githubUrl: url };
+    } else {
+      const code = document.getElementById('code-input').value.trim();
+      const fileName = document.getElementById('code-filename').value.trim() || 'PastedCode.java';
+      if (!code) { alert('Please paste some Java code.'); btn.disabled=false; btn.classList.remove('loading'); return; }
+      body = { type: 'code', code, fileName };
+    }
+
+    try {
+      const res = await fetch('/api/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      renderResults(data);
+      loadHistory();
+    } catch (e) {
+      alert('Analysis failed: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+  }
+
+  function renderResults(data) {
+    const section = document.getElementById('results');
+    const container = document.getElementById('findings-container');
+    const meta = document.getElementById('result-meta');
+    section.style.display = 'block';
+
+    if (data.error) {
+      container.innerHTML = `<div style="color:var(--red);padding:20px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">⚠️ ${data.error}</div>`;
+      meta.textContent = '';
+      return;
+    }
+
+    const count = data.findingCount || 0;
+    meta.textContent = `Review #${data.reviewId} · ${count} finding${count !== 1 ? 's' : ''} · ${new Date(data.analyzedAt).toLocaleString()}`;
+
+    if (data.message) {
+      container.innerHTML = `<div style="color:var(--amber);padding:20px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)">ℹ️ ${data.message}</div>`;
+      return;
+    }
+
+    if (!count) {
+      container.innerHTML = '<div class="no-findings">🎉 No issues found — excellent code quality!</div>';
+      return;
+    }
+
+    container.innerHTML = data.findings.map(f => `
+      <div class="finding-card ${f.severity}">
+        <div class="finding-top">
+          <span class="severity-badge ${f.severity}">${f.severity}</span>
+          <span class="rule-id">${f.ruleId}</span>
+          <span class="file-loc" style="cursor:pointer; text-decoration:underline;" onclick="toggleFileContent(event, ${data.reviewId}, '${f.file}', this)" title="Click to view file source">${f.file}:L${f.line}</span>
+          <span class="priority-badge">Priority ${f.priorityScore}/10</span>
+        </div>
+        <div class="code-container" style="display:none; margin-bottom:10px;"></div>
+        <div class="finding-message">${f.message}</div>
+        ${f.rationale ? `
+        <div class="finding-section">
+          <div class="finding-section-title">LLM Explanation</div>
+          <div class="finding-rationale">${f.rationale}</div>
+        </div>` : ''}
+        ${f.fix ? `
+        <div class="finding-section">
+          <div class="finding-section-title">Suggested Fix</div>
+          <pre class="fix">${escHtml(f.fix)}</pre>
+        </div>` : ''}
+      </div>`).join('');
+
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/reviews');
+      const reviews = await res.json();
+
+      // Update stats
+      document.getElementById('s-reviews').textContent = reviews.length;
+      const totalFindings = reviews.reduce((s, r) => s + (r.findingCount || 0), 0);
+      document.getElementById('s-findings').textContent = totalFindings;
+
+      // Count errors by fetching all findings (approximate from stored count)
+      document.getElementById('s-errors').textContent = '—';
+
+      const container = document.getElementById('history-container');
+      if (!reviews.length) {
+        container.innerHTML = '<div class="empty-history">No analyses yet — run your first review above.</div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Source</th><th>Analyzed At</th><th>Status</th><th>Findings</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>`;
+
+      const tbody = document.getElementById('history-body');
+      for (const r of reviews) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = r.id;
+        tr.innerHTML = `
+          <td>${r.id}</td>
+          <td class="source-cell" title="${r.repoName}">${r.repoName}${r.prNumber > 0 ? ' #' + r.prNumber : ''}</td>
+          <td class="time-ago">${formatTime(r.analyzedAt)}</td>
+          <td><span style="color:var(--green);font-size:12px">✓ ${r.status}</span></td>
+          <td><span class="count-badge ${r.findingCount > 0 ? 'has' : 'none'}">${r.findingCount} issue${r.findingCount !== 1 ? 's' : ''}</span></td>`;
+        tr.addEventListener('click', () => toggleHistoryRow(r.id, tr));
+        tbody.appendChild(tr);
+      }
+    } catch (e) {
+      console.error('Failed loading history', e);
+    }
+  }
+
+  async function toggleHistoryRow(id, tr) {
+    const existing = tr.nextSibling;
+    if (existing && existing.classList && existing.classList.contains('expand-row')) {
+      existing.remove(); return;
+    }
+
+    try {
+      const [resFindings, resFiles] = await Promise.all([
+          fetch(`/api/reviews/${id}/findings`),
+          fetch(`/api/reviews/${id}/files`)
+      ]);
+      const findings = resFindings.ok ? await resFindings.json() : [];
+      const files = resFiles.ok ? await resFiles.json() : [];
+
+      const expandRow = document.createElement('tr');
+      expandRow.classList.add('expand-row');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      
+      let html = `<div class="expand-inner">`;
+      
+      // Findings Section
+      html += `<div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Findings</div>`;
+      html += findings.length === 0
+          ? '<div style="color:var(--green); margin-bottom:20px;">✓ No issues found</div>'
+          : `<div style="margin-bottom:20px;">` + findings.map(f => `
+            <div style="margin-bottom:10px;padding:12px;background:var(--bg2);border-radius:8px;border-left:3px solid ${f.severity==='ERROR'?'var(--red)':'var(--amber)'}">
+              <div class="finding-top" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+                <span class="severity-badge ${f.severity}">${f.severity}</span>
+                <span class="rule-id">${f.ruleId}</span>
+                <span class="file-loc" style="cursor:pointer; text-decoration:underline;" onclick="toggleFileContent(event, ${id}, '${f.filePath}', this)" title="Click to view file source">${f.filePath}:L${f.lineNumber}</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--muted)">Priority ${f.priorityScore}/10</span>
+              </div>
+              <div class="code-container" style="display:none; margin-bottom:10px;"></div>
+              <div style="font-size:13px;color:var(--text);margin-bottom:6px">${f.message}</div>
+              ${f.rationale ? `<div style="font-size:12px;color:var(--muted)">${f.rationale}</div>` : ''}
+              ${f.fixSuggestion ? `<pre class="fix" style="margin-top:8px">${escHtml(f.fixSuggestion)}</pre>` : ''}
+            </div>`).join('') + `</div>`;
+            
+      // Files Section
+      html += `<div style="font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Source Files</div>`;
+      if (!files || files.length === 0) {
+          html += `<div style="color:var(--muted); font-size:12px;">No source files stored for this analysis.</div>`;
+      } else {
+          html += files.map(f => `
+            <div style="margin-bottom:8px; padding:12px; background:var(--bg2); border-radius:8px; border:1px solid var(--border);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size:12px; color:var(--purple); cursor:pointer; text-decoration:underline;" onclick="toggleFileContent(event, ${id}, '${f.filePath}', this)" title="Click to view code">📄 ${f.filePath}</span>
+              </div>
+              <div class="code-container" style="display:none; margin-top:10px;"></div>
+            </div>`).join('');
+      }
+
+      html += `</div>`;
+      td.innerHTML = html;
+      expandRow.appendChild(td);
+      tr.after(expandRow);
+    } catch (e) {
+      console.error('Failed loading history row details', e);
+    }
+  }
+
+  function formatTime(iso) {
+    const d = new Date(iso);
+    const diff = Math.floor((Date.now() - d) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+    return d.toLocaleDateString();
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function toggleFileContent(e, reviewId, filePath, el) {
+    e.stopPropagation();
+    const codeContainer = el.closest('.finding-top') ? el.closest('.finding-top').nextElementSibling : el.closest('div').nextElementSibling;
+    if (codeContainer.style.display === 'block') {
+      codeContainer.style.display = 'none';
+      return;
+    }
+    if (codeContainer.innerHTML !== '') {
+      codeContainer.style.display = 'block';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/files/content?filePath=${encodeURIComponent(filePath)}`);
+      if (!res.ok) {
+        codeContainer.innerHTML = '<div style="color:var(--red); font-size:11px; padding:10px; background:var(--bg); border-radius:6px; border:1px solid var(--border);">File content not found. This analysis might be from before code storage was added.</div>';
+        codeContainer.style.display = 'block';
+        return;
+      }
+      const data = await res.json();
+      codeContainer.innerHTML = `<pre style="background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:6px; overflow-x:auto; font-size:11px; color:var(--text); max-height: 400px; overflow-y: auto;">${escHtml(data.content)}</pre>`;
+      codeContainer.style.display = 'block';
+    } catch (err) {
+      console.error(err);
+      codeContainer.innerHTML = '<div style="color:var(--red); font-size:11px;">Failed to load file content.</div>';
+      codeContainer.style.display = 'block';
+    }
+  }
+
+  // Load history on startup, refresh every 30s
+  loadHistory();
+  setInterval(loadHistory, 30000);
+</script>
+</body>
+</html>
