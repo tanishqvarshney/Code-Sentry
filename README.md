@@ -106,9 +106,17 @@ Headers:
 
 ## Screenshots
 
-### Analysis Dashboard
-![Analysis Dashboard](screenshots/dashboard-code-viewer.png)
+### 1
+![Screenshot 1](screenshots/1.png)
 
-### Code Findings
-![Code Findings](screenshots/dashboard-findings.png)
+### 2
+![Screenshot 2](screenshots/2.png)
 
+### 3
+![Screenshot 3](screenshots/3.png)
+
+### 4
+![Screenshot 4](screenshots/4.png)
+
+### 5
+![Screenshot 5](screenshots/5.png)
