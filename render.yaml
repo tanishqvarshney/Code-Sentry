@@ -4,11 +4,11 @@ databases:
     user: codesentry_user
     plan: free
 
-redis:
-  - name: codesentry-redis
+services:
+  - type: redis
+    name: codesentry-redis
     plan: free
 
-services:
   - type: web
     name: codesentry-app
     env: docker
