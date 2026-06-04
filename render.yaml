@@ -1,0 +1,53 @@
+databases:
+  - name: codesentry-db
+    databaseName: codesentry
+    user: codesentry_user
+    plan: free
+
+redis:
+  - name: codesentry-redis
+    plan: free
+
+services:
+  - type: web
+    name: codesentry-app
+    env: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: codesentry-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: codesentry-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: codesentry-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: codesentry-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: codesentry-db
+          property: password
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: codesentry-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: codesentry-redis
+          property: port
+      - key: ANTHROPIC_API_KEY
+        value: "mock-key"
+      - key: GITHUB_APP_ID
+        value: "123456"
+      - key: GITHUB_WEBHOOK_SECRET
+        value: "sentry-secret"
