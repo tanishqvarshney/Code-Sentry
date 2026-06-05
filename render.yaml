@@ -52,3 +52,5 @@ services:
         value: "123456"
       - key: GITHUB_WEBHOOK_SECRET
         value: "sentry-secret"
+      - key: GITHUB_TOKEN
+        sync: false

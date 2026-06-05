@@ -33,6 +33,7 @@ public class AnalysisPipeline {
     private final PrFindingRepository prFindingRepository;
     private final AnalyzedFileRepository analyzedFileRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final String githubToken;
     private final List<Rule> rules;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
@@ -41,13 +42,15 @@ public class AnalysisPipeline {
                             PrReviewRepository prReviewRepository,
                             PrFindingRepository prFindingRepository,
                             AnalyzedFileRepository analyzedFileRepository,
-                            RedisTemplate<String, Object> redisTemplate) {
+                            RedisTemplate<String, Object> redisTemplate,
+                            @org.springframework.beans.factory.annotation.Value("${github.token:}") String githubToken) {
         this.gitHubClientService = gitHubClientService;
         this.llmExplainerService = llmExplainerService;
         this.prReviewRepository = prReviewRepository;
         this.prFindingRepository = prFindingRepository;
         this.analyzedFileRepository = analyzedFileRepository;
         this.redisTemplate = redisTemplate;
+        this.githubToken = githubToken;
         this.rules = List.of(
                 new ResourceLeakRule(),
                 new NullSafetyRule(),
@@ -104,9 +107,13 @@ public class AnalysisPipeline {
         String headBranch = "main";
         try {
             String prApiUrl = String.format("https://api.github.com/repos/%s/pulls/%d", repoName, prNumber);
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(prApiUrl))
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder().uri(URI.create(prApiUrl))
                     .header("Accept", "application/vnd.github.v3+json")
-                    .header("User-Agent", "CodeSentry").GET().build();
+                    .header("User-Agent", "CodeSentry");
+            if (githubToken != null && !githubToken.isBlank()) {
+                reqBuilder.header("Authorization", "Bearer " + githubToken);
+            }
+            HttpRequest req = reqBuilder.GET().build();
             HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() == 200) {
                 String body = resp.body();
@@ -121,9 +128,13 @@ public class AnalysisPipeline {
         List<String> codeFiles = new ArrayList<>();
         try {
             String filesUrl = String.format("https://api.github.com/repos/%s/pulls/%d/files", repoName, prNumber);
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(filesUrl))
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder().uri(URI.create(filesUrl))
                     .header("Accept", "application/vnd.github.v3+json")
-                    .header("User-Agent", "CodeSentry").GET().build();
+                    .header("User-Agent", "CodeSentry");
+            if (githubToken != null && !githubToken.isBlank()) {
+                reqBuilder.header("Authorization", "Bearer " + githubToken);
+            }
+            HttpRequest req = reqBuilder.GET().build();
             HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() == 200) {
                 String body = resp.body();
@@ -158,8 +169,12 @@ public class AnalysisPipeline {
             String rawUrl = String.format("https://raw.githubusercontent.com/%s/%s/%s",
                     repoName, headBranch, filePath);
             try {
-                HttpRequest req = HttpRequest.newBuilder().uri(URI.create(rawUrl))
-                        .header("User-Agent", "CodeSentry").GET().build();
+                HttpRequest.Builder reqBuilder = HttpRequest.newBuilder().uri(URI.create(rawUrl))
+                        .header("User-Agent", "CodeSentry");
+                if (githubToken != null && !githubToken.isBlank()) {
+                    reqBuilder.header("Authorization", "token " + githubToken);
+                }
+                HttpRequest req = reqBuilder.GET().build();
                 HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
                 if (resp.statusCode() == 200) {
                     String rawContent = resp.body();
@@ -359,8 +374,12 @@ public class AnalysisPipeline {
 
         String rawUrl = String.format("https://raw.githubusercontent.com/%s/%s/%s", repoName, commitSha, filePath);
         try {
-            HttpRequest req = HttpRequest.newBuilder().uri(URI.create(rawUrl))
-                    .header("User-Agent", "CodeSentry").GET().build();
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder().uri(URI.create(rawUrl))
+                    .header("User-Agent", "CodeSentry");
+            if (githubToken != null && !githubToken.isBlank()) {
+                reqBuilder.header("Authorization", "token " + githubToken);
+            }
+            HttpRequest req = reqBuilder.GET().build();
             HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() == 200) {
                 return resp.body();
