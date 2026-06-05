@@ -32,17 +32,17 @@ Unlike typical LLM code review tools that act as simple prompt wraps, CodeSentry
 
 ```mermaid
 graph TD
-    A[GitHub Pull Request Webhook] -->|Ingest Diff| B[GitHubClientService]
-    B -->|Parse Modified Lines| C[AnalysisPipeline]
-    C -->|Fetch/Cache AST| D[(Redis Cache)]
-    C -->|Run Rules: CFG + DFG| E[codesentry-core Rules]
-    E -->|Filter Relevant Findings| F[Diff-Aware Filter]
-    F -->|Request Explanations| G[LlmExplainerService]
-    G -->|Call Anthropic Claude API| H[Claude API]
-    H -->|Return Strict JSON| G
-    G -->|Enriched Findings| I[PostgreSQL Database]
-    I -->|Consolidated PR Review| J[GitHub Client]
-    J -->|Post Review & Inline Comments| K[GitHub PR Interface]
+    A["GitHub Pull Request Webhook"] -->|"Ingest Diff"| B["GitHubClientService"]
+    B -->|"Parse Modified Lines"| C["AnalysisPipeline"]
+    C -->|"Fetch/Cache AST"| D[("Redis Cache")]
+    C -->|"Run Rules: CFG + DFG"| E["codesentry-core Rules"]
+    E -->|"Filter Relevant Findings"| F["Diff-Aware Filter"]
+    F -->|"Request Explanations"| G["LlmExplainerService"]
+    G -->|"Call Anthropic Claude API"| H["Claude API"]
+    H -.->|"Return Strict JSON"| G
+    G -->|"Enriched Findings"| I[("PostgreSQL Database")]
+    I -->|"Consolidated PR Review"| J["GitHub Client"]
+    J -->|"Post Review & Inline Comments"| K["GitHub PR Interface"]
 ```
 
 ---
