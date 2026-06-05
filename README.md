@@ -107,6 +107,9 @@ Headers:
 ### Analysis Dashboard
 ![Analysis Dashboard](screenshots/1.png)
 
+### Walkthrough Demo Video
+![Walkthrough Demo Video](screenshots/walkthrough.gif)
+
 ### History View
 ![History View](screenshots/2.png)
 
